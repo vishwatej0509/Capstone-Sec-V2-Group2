@@ -30,3 +30,8 @@ Rain streak removal will be greatly helpful for areas like autonomous driving, s
 surveillance, and object detection systems, where high-quality visuals are essential for accurate detection and decision-making. By improving the clarity of images impacted by rain,
 our model will enhance the performance of these systems, contributing to safer and more
 reliable operations in challenging weather conditions.
+
+
+# Prospective datasets:
+- Stereo Image Dataset- https://deepblue.lib.umich.edu/data/concern/data_sets/cc08hg37c?locale=en
+- Deraindrop Dataset- https://drive.google.com/open?id=1e7R76s6vwUJxILOcAsthgDLPSnOrQ49K
