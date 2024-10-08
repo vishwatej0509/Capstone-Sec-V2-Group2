@@ -37,5 +37,5 @@ reliable operations in challenging weather conditions.
 - Deraindrop Dataset- https://drive.google.com/open?id=1e7R76s6vwUJxILOcAsthgDLPSnOrQ49K
 
 # Self-Supervised Learning (SSL) - Reference materials:
-- ![Self-Supervised Representation Learning by Rotation Feature Decoupling](https://openaccess.thecvf.com/content_CVPR_2019/papers/Feng_Self-Supervised_Representation_Learning_by_Rotation_Feature_Decoupling_CVPR_2019_paper.pdf)
-- ![Review — RotNet: Unsupervised Representation Learning by Predicting Image Rotations](https://sh-tsang.medium.com/review-rotnet-unsupervised-representation-learning-by-predicting-image-rotations-60f4e4f3cf67)
+- [Self-Supervised Representation Learning by Rotation Feature Decoupling](https://openaccess.thecvf.com/content_CVPR_2019/papers/Feng_Self-Supervised_Representation_Learning_by_Rotation_Feature_Decoupling_CVPR_2019_paper.pdf)
+- [Review — RotNet: Unsupervised Representation Learning by Predicting Image Rotations](https://sh-tsang.medium.com/review-rotnet-unsupervised-representation-learning-by-predicting-image-rotations-60f4e4f3cf67)
