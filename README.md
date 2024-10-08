@@ -17,6 +17,7 @@ Most existing solutions are computationally intensive and often rely on syntheti
 which may not generalize well to real-world rainy conditions. Moreover, previous methods typically either focus on real or synthetic rain datasets separately, which limits their
 applicability across various scenarios.
 
+
 To address this issue, we will be developing a Convolutional Neural Network (CNN) model
 based on the U-Net architecture. Our approach incorporates a self-supervised training
 method that allows the model to learn general features during a pretext-based task, thereby
@@ -30,6 +31,11 @@ Rain streak removal will be greatly helpful for areas like autonomous driving, s
 surveillance, and object detection systems, where high-quality visuals are essential for accurate detection and decision-making. By improving the clarity of images impacted by rain,
 our model will enhance the performance of these systems, contributing to safer and more
 reliable operations in challenging weather conditions.
+
+# Model Block Diagram(Midterm):
+UNet with Encoder followed by classfication. Decoder part is masked as it will be implemented after midterm.
+
+![Model_Block diagram](https://github.com/user-attachments/assets/b0a9ac3b-7780-4368-87d1-0a72a14e51e3)
 
 
 # Prospective datasets:
