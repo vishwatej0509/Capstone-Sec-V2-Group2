@@ -16,6 +16,7 @@ import PIL
 
 
 
+
 stats = ((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 image_transforms = transforms.Compose([
         transforms.ToTensor(),
@@ -77,7 +78,12 @@ class UNet(nn.Module):
         output_out = self.output(expansive_42_out) # [-1, num_classes, 256, 256]
         return output_out
 
-model = torch.load("./image_deraining_v1.pt", map_location=torch.device('cpu'))
+# model = torch.load("./image_deraining_v1.pt", map_location=torch.device('cpu'))
+model = UNet(num_classes = 3)
+model_weights = torch.load("image_deraining_v3.pt",  map_location=torch.device('cpu'))
+model.load_state_dict(model_weights, strict = False)
+# print(type(model))
+
 
 def denormalize(images, means, stds):
     means = torch.tensor(means).reshape(1, 3, 1, 1)
@@ -102,13 +108,19 @@ def generate_and_display_images(uploaded_file):
         
         # generate image from source
         gen_img = model(src_img)
+        # assert torch.equal(gen_img, src_img), "Both are same"
+
         gen_img = denormalize(gen_img, *stats)
         gen_img = torch.squeeze(gen_img, 0).permute(1,2,0).detach().numpy()
         gen_img = (gen_img - gen_img.min())/(gen_img.max() - gen_img.min())
 
-        col1, col2 = st.columns(2, gap = "small")
+        src_img = denormalize(src_img, *stats)
+        src_img = torch.squeeze(src_img, 0).permute(1,2,0).detach().numpy()
+        src_img = (src_img - src_img.min())/(src_img.max() - src_img.min())
+
+        col1, col2 = st.columns(2, gap = "large")
         with col1:
-            st.image(org_img)
+            st.image(src_img)
             st.markdown("Input image")
         with col2:
             st.image(gen_img)
