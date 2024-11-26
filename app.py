@@ -1,145 +1,155 @@
 import streamlit as st
-import pickle
-import streamlit as st
 import pandas as pd
 from PIL import Image
-
 import torch
 import torch.nn as nn
 import torchvision
 from torchvision import transforms
-from matplotlib import pyplot
 import numpy as np
-import cv2 
-from PIL import Image
-import PIL
+import cv2
+import base64
 
+# Set page configuration as the very first Streamlit command
+st.set_page_config(layout="wide", page_title="Image Deraining")
 
+# Function to set the local background image
+def set_background(image_path):
+    with open(image_path, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode()
+    st.markdown(
+        f"""
+        <style>
+        .main {{
+            background-image: url(data:image/jpg;base64,{encoded_string});
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
+# Set the background image
+set_background("splash.jpg")  # Replace with your local image file
 
+# Model and transformations
 stats = ((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 image_transforms = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(*stats, inplace=True),
-        transforms.Resize((224, 224), interpolation=PIL.Image.BILINEAR)
-    ])
+    transforms.ToTensor(),
+    transforms.Normalize(*stats, inplace=True),
+    transforms.Resize((224, 224))
+])
 
+# UNet Model Definition
 class UNet(nn.Module):
-    
     def __init__(self, num_classes):
         super(UNet, self).__init__()
         self.num_classes = num_classes
-        self.contracting_11 = self.conv_block(in_channels=3, out_channels=64)
-        self.contracting_12 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.contracting_21 = self.conv_block(in_channels=64, out_channels=128)
-        self.contracting_22 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.contracting_31 = self.conv_block(in_channels=128, out_channels=256)
-        self.contracting_32 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.contracting_41 = self.conv_block(in_channels=256, out_channels=512)
-        self.contracting_42 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.middle = self.conv_block(in_channels=512, out_channels=1024)
-        self.expansive_11 = nn.ConvTranspose2d(in_channels=1024, out_channels=512, kernel_size=3, stride=2, padding=1, output_padding=1)
-        self.expansive_12 = self.conv_block(in_channels=1024, out_channels=512)
-        self.expansive_21 = nn.ConvTranspose2d(in_channels=512, out_channels=256, kernel_size=3, stride=2, padding=1, output_padding=1)
-        self.expansive_22 = self.conv_block(in_channels=512, out_channels=256)
-        self.expansive_31 = nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=3, stride=2, padding=1, output_padding=1)
-        self.expansive_32 = self.conv_block(in_channels=256, out_channels=128)
-        self.expansive_41 = nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=3, stride=2, padding=1, output_padding=1)
-        self.expansive_42 = self.conv_block(in_channels=128, out_channels=64)
-        self.output = nn.Conv2d(in_channels=64, out_channels=num_classes, kernel_size=3, stride=1, padding=1)
-        
+        self.contracting_11 = self.conv_block(3, 64)
+        self.contracting_12 = nn.MaxPool2d(2, 2)
+        self.contracting_21 = self.conv_block(64, 128)
+        self.contracting_22 = nn.MaxPool2d(2, 2)
+        self.contracting_31 = self.conv_block(128, 256)
+        self.contracting_32 = nn.MaxPool2d(2, 2)
+        self.contracting_41 = self.conv_block(256, 512)
+        self.contracting_42 = nn.MaxPool2d(2, 2)
+        self.middle = self.conv_block(512, 1024)
+        self.expansive_11 = nn.ConvTranspose2d(1024, 512, 3, 2, 1, 1)
+        self.expansive_12 = self.conv_block(1024, 512)
+        self.expansive_21 = nn.ConvTranspose2d(512, 256, 3, 2, 1, 1)
+        self.expansive_22 = self.conv_block(512, 256)
+        self.expansive_31 = nn.ConvTranspose2d(256, 128, 3, 2, 1, 1)
+        self.expansive_32 = self.conv_block(256, 128)
+        self.expansive_41 = nn.ConvTranspose2d(128, 64, 3, 2, 1, 1)
+        self.expansive_42 = self.conv_block(128, 64)
+        self.output = nn.Conv2d(64, num_classes, 3, 1, 1)
+
     def conv_block(self, in_channels, out_channels):
-        block = nn.Sequential(nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1),
-                                    nn.ReLU(),
-                                    nn.BatchNorm2d(num_features=out_channels),
-                                    nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1),
-                                    nn.ReLU(),
-                                    nn.BatchNorm2d(num_features=out_channels))
-        return block
-    
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, 1, 1),
+            nn.ReLU(),
+            nn.BatchNorm2d(out_channels),
+            nn.Conv2d(out_channels, out_channels, 3, 1, 1),
+            nn.ReLU(),
+            nn.BatchNorm2d(out_channels)
+        )
+
     def forward(self, X):
-        contracting_11_out = self.contracting_11(X) # [-1, 64, 256, 256]
-        contracting_12_out = self.contracting_12(contracting_11_out) # [-1, 64, 128, 128]
-        contracting_21_out = self.contracting_21(contracting_12_out) # [-1, 128, 128, 128]
-        contracting_22_out = self.contracting_22(contracting_21_out) # [-1, 128, 64, 64]
-        contracting_31_out = self.contracting_31(contracting_22_out) # [-1, 256, 64, 64]
-        contracting_32_out = self.contracting_32(contracting_31_out) # [-1, 256, 32, 32]
-        contracting_41_out = self.contracting_41(contracting_32_out) # [-1, 512, 32, 32]
-        contracting_42_out = self.contracting_42(contracting_41_out) # [-1, 512, 16, 16]
-        middle_out = self.middle(contracting_42_out) # [-1, 1024, 16, 16]
-        expansive_11_out = self.expansive_11(middle_out) # [-1, 512, 32, 32]
-        expansive_12_out = self.expansive_12(torch.cat((expansive_11_out, contracting_41_out), dim=1)) # [-1, 1024, 32, 32] -> [-1, 512, 32, 32]
-        expansive_21_out = self.expansive_21(expansive_12_out) # [-1, 256, 64, 64]
-        expansive_22_out = self.expansive_22(torch.cat((expansive_21_out, contracting_31_out), dim=1)) # [-1, 512, 64, 64] -> [-1, 256, 64, 64]
-        expansive_31_out = self.expansive_31(expansive_22_out) # [-1, 128, 128, 128]
-        expansive_32_out = self.expansive_32(torch.cat((expansive_31_out, contracting_21_out), dim=1)) # [-1, 256, 128, 128] -> [-1, 128, 128, 128]
-        expansive_41_out = self.expansive_41(expansive_32_out) # [-1, 64, 256, 256]
-        expansive_42_out = self.expansive_42(torch.cat((expansive_41_out, contracting_11_out), dim=1)) # [-1, 128, 256, 256] -> [-1, 64, 256, 256]
-        output_out = self.output(expansive_42_out) # [-1, num_classes, 256, 256]
-        return output_out
+        c11 = self.contracting_11(X)
+        c12 = self.contracting_12(c11)
+        c21 = self.contracting_21(c12)
+        c22 = self.contracting_22(c21)
+        c31 = self.contracting_31(c22)
+        c32 = self.contracting_32(c31)
+        c41 = self.contracting_41(c32)
+        c42 = self.contracting_42(c41)
+        m = self.middle(c42)
+        e11 = self.expansive_11(m)
+        e12 = self.expansive_12(torch.cat((e11, c41), 1))
+        e21 = self.expansive_21(e12)
+        e22 = self.expansive_22(torch.cat((e21, c31), 1))
+        e31 = self.expansive_31(e22)
+        e32 = self.expansive_32(torch.cat((e31, c21), 1))
+        e41 = self.expansive_41(e32)
+        e42 = self.expansive_42(torch.cat((e41, c11), 1))
+        return self.output(e42)
 
-# model = torch.load("./image_deraining_v1.pt", map_location=torch.device('cpu'))
-model = UNet(num_classes = 3)
-model_weights = torch.load("image_deraining_v3.pt",  map_location=torch.device('cpu'))
-model.load_state_dict(model_weights, strict = False)
-# print(type(model))
-
+# Load model
+model = UNet(num_classes=3)
+model_weights = torch.load("best_model.pt", map_location=torch.device('cpu'))
+model.load_state_dict(model_weights, strict=False)
 
 def denormalize(images, means, stds):
     means = torch.tensor(means).reshape(1, 3, 1, 1)
     stds = torch.tensor(stds).reshape(1, 3, 1, 1)
     return images * stds + means
 
+def resize_to_match(image, target_height, target_width):
+    """
+    Resize an image to match the target height and width.
+    """
+    return cv2.resize(image, (target_width, target_height), interpolation=cv2.INTER_AREA)
+
 def generate_and_display_images(uploaded_file):
     if uploaded_file is not None:
-        # Saves
-        img = Image.open(uploaded_file)
-        img = img.save("img.jpg")
+        # Load input image
+        img = Image.open(uploaded_file).convert("RGB")
+        img.save("input_image.jpg")
 
-        org_img = cv2.imread("img.jpg")
-        org_img = cv2.cvtColor(org_img, cv2.COLOR_BGR2RGB)
-        # st.image(uploaded_file)
-        src_img = cv2.imread("img.jpg")
-        src_img = cv2.cvtColor(src_img, cv2.COLOR_BGR2RGB)
-        src_img = image_transforms(src_img)
-        src_img = torch.unsqueeze(src_img, 0)
-        
-        print(f"Resized shape: {src_img.shape}")
-        
-        # generate image from source
+        # Keep original input image for display
+        org_img = np.array(img)
+
+        # Transform input image for model processing
+        src_img = image_transforms(org_img).unsqueeze(0)
+
+        # Generate output image
         gen_img = model(src_img)
-        # assert torch.equal(gen_img, src_img), "Both are same"
+        gen_img = denormalize(gen_img, *stats).squeeze().permute(1, 2, 0).detach().numpy()
+        gen_img = np.clip((gen_img - gen_img.min()) / (gen_img.max() - gen_img.min()), 0, 1)
 
-        gen_img = denormalize(gen_img, *stats)
-        gen_img = torch.squeeze(gen_img, 0).permute(1,2,0).detach().numpy()
-        gen_img = (gen_img - gen_img.min())/(gen_img.max() - gen_img.min())
+        # Resize the output image to match the input image dimensions
+        gen_img_resized = resize_to_match(
+            (gen_img * 255).astype(np.uint8),  # Scale gen_img to 0-255 for display
+            target_height=org_img.shape[0],
+            target_width=org_img.shape[1]
+        )
 
-        src_img = denormalize(src_img, *stats)
-        src_img = torch.squeeze(src_img, 0).permute(1,2,0).detach().numpy()
-        src_img = (src_img - src_img.min())/(src_img.max() - src_img.min())
-
-        col1, col2 = st.columns(2, gap = "large")
+        # Display input and output images side by side
+        col1, col2 = st.columns([1, 1], gap="large")
         with col1:
-            st.image(src_img)
-            st.markdown("Input image")
+            st.image(org_img, caption="Input Image", use_column_width=True)
         with col2:
-            st.image(gen_img)
-            st.markdown("Derained image")
-
+            st.image(gen_img_resized, caption="Derained Image", use_column_width=True)
 
 if __name__ == "__main__":
-    
-    st.set_page_config(layout='centered',
-                    page_title="Image deraining")
-    
-    st.header("Make a clear image")
+    st.title("🌧️ Image Deraining Application")
+    st.markdown("#### Upload a rainy image and make it clear! 🎨")
+    uploaded_file = st.file_uploader("Upload your file here...", type=["png", "jpg", "jpeg"])
+    if uploaded_file is not None:
+        if st.button("Generate Derained Image"):
+            generate_and_display_images(uploaded_file)
 
-    st.markdown("#")
-    uploaded_file = st.file_uploader("Upload your file here...", type=['png', 'jpg', 'jpeg'])
-    print(type(uploaded_file))
-    # StreamLit application
-    
-    if st.button("Derain image..", use_container_width=True):
-        generate_and_display_images(uploaded_file)
+
 
 
