@@ -51,7 +51,8 @@ We achieved these results using the RainDS and GTrain datasets. Initially, we ex
 
 Our model uses a U-Net architecture with a pre-trained encoder, enhanced through a self-supervised learning (SSL) rotational classification task. The encoder extracts general features, while the decoder reconstructs rain-free images using upsampling and skip connections to retain spatial information. This workflow balances efficiency and performance for rain streak removal.
 
-![Group 10](https://github.com/user-attachments/assets/595274c0-af7c-41cf-8bcc-6aa02b7bcfa3)
+<img width="686" alt="Screenshot 2024-11-26 at 8 21 02 PM" src="https://github.com/user-attachments/assets/70ffc6a8-adbe-40e0-93a0-48271eaa007c">
+
 
 
 # Datasets used:
