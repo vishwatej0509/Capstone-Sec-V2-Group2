@@ -32,17 +32,17 @@ Final performance metrics for our model are as follows:
 
 Training Results:
 
-Mean Squared Error (MSE): 0.00688
-PSNR: 27.61749
-SSIM: 0.8374
-Loss: 0.00684
+- Mean Squared Error (MSE): 0.00688
+- PSNR: 27.61749
+- SSIM: 0.8374
+- Loss: 0.00684
 
 Validation Results:
 
-MSE: 0.05347
-PSNR: 18.73917
-SSIM: 0.6072
-Loss: 0.07059
+- MSE: 0.05347
+- PSNR: 18.73917
+- SSIM: 0.6072
+- Loss: 0.07059
 
 We achieved these results using the RainDS and GTrain datasets. Initially, we explored using a dashcam dataset, but the rain streaks were unclear, creating biases in the training data. Therefore, we limited our training to the RainDS and GTrain datasets, which provided better consistency and clarity.
 
